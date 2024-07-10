@@ -1,8 +1,31 @@
 // import React from 'react'
+import { LoaderArgs } from "@remix-run/node"
+import { json, Link } from "@remix-run/react"
+import { useLoaderData } from "@remix-run/react"
+import { Product } from "~/lib/interface"
+import { client } from "~/lib/sanity"
+interface iAppProps {
+  products: Product[]
+}
 
-import { Link } from "@remix-run/react"
+// eslint-disable-next-line no-empty-pattern
+export async function loader({}: LoaderArgs) {
+  console.log('hello');
+  const query = `*[_type == 'product']{
+    price,
+    name,
+    slug,
+    "imageUrl": image[0].asset->url
+  }`
+  const products = await client.fetch(query)
+  console.log('product query:', products)
+
+  return json({ products })
+}
 
 const IndexPage = () => {
+  const { products } = useLoaderData<typeof loader>() as iAppProps
+  console.log('product:', products);
   return (
     <>
       <section className="flex flex-col justify-between gap-6 sm:gap-10 md:gap-16 lg:flex-row mt-12">
@@ -33,6 +56,31 @@ const IndexPage = () => {
             alt="Smartphone"
             className="h-full w-full object-cover object-center"
           />
+        </div>
+      </section>
+      <section id="products">
+        <div className="py-24 sm:py-32 lg:pt-32">
+          <div className="mt-6 grid grid-col-2 gap-x-4 gap-y-10 sm:gap-x-6 md:grid-cols-4 md:gap-y-0 lg:gap-x-8">
+            {products.map((product) => (
+              // eslint-disable-next-line react/jsx-key
+              <Link
+                className="group relative"
+                to={`/product/${product.slug.current}`}
+              >
+                <div className="w-full h-56 rounded-md overflow-hidden group-hover:opacity-75 lg:h-72 xl:h-80">
+                  <img
+                    src={product.imageUrl}
+                    alt="Product"
+                    className="w-full h-full object-center object-contain"
+                  />
+                </div>
+                <h3 className="mt-4 text-sm text-gray-700">{product.name}</h3>
+                <p className="mt-1 text-sm font-medium text-gray-900">
+                  $ {product.price}
+                </p>
+              </Link>
+            ))}
+          </div>
         </div>
       </section>
     </>
